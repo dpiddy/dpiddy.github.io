@@ -1,0 +1,33 @@
+<!doctype html><html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Reducing nesting in Go functions with early returns · Dan Peterson</title><link rel=stylesheet href=/css/rocinante.css><body><header><h2><a href=https://danp.net/>‹ Dan Peterson</a></h2></header><main><div class=post><div class=title-group><div class=title><h1>Reducing nesting in Go functions with early returns</h1></div><div class=date><h5>Nov 02, 2015</h5></div></div><article class=content><p>One of my favorite localized Go refactorings is reducing nesting by using <code>return</code> as early as possible. Take this example, based on a recently-refactored function at Heroku:</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-go data-lang=go><span style=color:#a90d91>func</span> <span style=color:#000>example</span>() <span style=color:#a90d91>error</span> {
+  <span style=color:#a90d91>if</span> <span style=color:#000>err</span> <span style=color:#000>:=</span> <span style=color:#000>start</span>(); <span style=color:#000>err</span> <span style=color:#000>!=</span> <span style=color:#a90d91>nil</span> {
+    <span style=color:#000>existing</span>, <span style=color:#000>err</span> <span style=color:#000>:=</span> <span style=color:#000>fetchExisting</span>()
+    <span style=color:#a90d91>if</span> <span style=color:#000>err</span> <span style=color:#000>!=</span> <span style=color:#a90d91>nil</span> {
+      <span style=color:#a90d91>return</span> <span style=color:#000>err</span>
+    }
+
+    <span style=color:#a90d91>if</span> <span style=color:#000>existing</span>.<span style=color:#000>IsWorking</span>() {
+      <span style=color:#a90d91>return</span> <span style=color:#a90d91>nil</span>
+    } <span style=color:#a90d91>else</span> {
+      <span style=color:#a90d91>return</span> <span style=color:#000>errors</span>.<span style=color:#000>New</span>(<span style=color:#c41a16>&#34;found existing but it&#39;s not working&#34;</span>)
+    }
+  }
+
+  <span style=color:#a90d91>return</span> <span style=color:#a90d91>nil</span>
+}
+</code></pre></div><p>This can be hard to follow due to nesting inside <code>if ...; err != nil</code> and use of <code>else</code>. I prefer to <code>return</code> as early as possible and avoid <code>else</code>. Applying that, it now looks something like this:</p><div class=highlight><pre style=background-color:#fff;-moz-tab-size:2;-o-tab-size:2;tab-size:2><code class=language-go data-lang=go><span style=color:#a90d91>func</span> <span style=color:#000>example</span>() <span style=color:#a90d91>error</span> {
+  <span style=color:#a90d91>if</span> <span style=color:#000>err</span> <span style=color:#000>:=</span> <span style=color:#000>start</span>(); <span style=color:#000>err</span> <span style=color:#000>==</span> <span style=color:#a90d91>nil</span> {
+    <span style=color:#a90d91>return</span> <span style=color:#000>err</span>
+  }
+
+  <span style=color:#000>existing</span>, <span style=color:#000>err</span> <span style=color:#000>:=</span> <span style=color:#000>fetchExisting</span>()
+  <span style=color:#a90d91>if</span> <span style=color:#000>err</span> <span style=color:#000>!=</span> <span style=color:#a90d91>nil</span> {
+    <span style=color:#a90d91>return</span> <span style=color:#000>err</span>
+  }
+
+  <span style=color:#a90d91>if</span> !<span style=color:#000>existing</span>.<span style=color:#000>IsWorking</span>() {
+    <span style=color:#a90d91>return</span> <span style=color:#000>errors</span>.<span style=color:#000>New</span>(<span style=color:#c41a16>&#34;found existing but it&#39;s not working&#34;</span>)
+  }
+
+  <span style=color:#a90d91>return</span> <span style=color:#a90d91>nil</span>
+}
+</code></pre></div><p>This style is mentioned in <a href=https://golang.org/doc/effective_go.html#if target=_blank>Effective Go</a> but perhaps isn&rsquo;t well-known enough. It&rsquo;s a simple change but one that I feel greatly improves readability.</p></article></article></main><footer><div class=content-container><div class=content>Hi, I&rsquo;m Dan. Usually danp.<p class=horizontal-links><a href=https://twitter.com/danp128 target=_blank>Twitter</a><a href=https://github.com/danp target=_blank>GitHub</a></p></div></div></footer><script>const emailId=atob("")</script><script src=/js/rocinante.min.js></script></body></html>
